@@ -1,0 +1,25 @@
+{
+  "appId": "cd.carnet.dettes",
+  "appName": "Carnet de Dettes",
+  "webDir": "www",
+  "android": {
+    "allowMixedContent": true
+  },
+  "server": {
+    "androidScheme": "https",
+    "cleartext": true
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchAutoHide": true,
+      "launchShowDuration": 600,
+      "backgroundColor": "#f9f6f0",
+      "androidSpinnerStyle": "small",
+      "showSpinner": false
+    },
+    "StatusBar": {
+      "style": "LIGHT",
+      "backgroundColor": "#fbf9f4"
+    }
+  }
+}
