@@ -1,0 +1,27 @@
+{
+  "name": "carnet-dettes-mobile",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Wrapper Capacitor Android pour le Carnet de Dettes",
+  "type": "module",
+  "scripts": {
+    "sync:web": "node scripts/sync-web.mjs",
+    "android:add": "npm run sync:web && npx cap add android",
+    "sync": "npm run sync:web && npx cap sync android",
+    "open": "npx cap open android",
+    "run": "npm run sync && npx cap run android",
+    "build:apk": "npm run sync && cd android && ./gradlew assembleDebug",
+    "build:release": "npm run sync && cd android && ./gradlew bundleRelease"
+  },
+  "devDependencies": {
+    "@capacitor/android": "^8.0.0",
+    "@capacitor/cli": "^8.0.0"
+  },
+  "dependencies": {
+    "@capacitor/app": "^8.0.0",
+    "@capacitor/core": "^8.0.0",
+    "@capacitor/splash-screen": "^8.0.0",
+    "@capacitor/status-bar": "^8.0.0",
+    "@capacitor-community/sqlite": "^6.4.0"
+  }
+}
