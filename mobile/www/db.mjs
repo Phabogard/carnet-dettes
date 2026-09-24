@@ -35,6 +35,20 @@ CREATE TABLE IF NOT EXISTS payments (
 
 CREATE INDEX IF NOT EXISTS idx_transactions_contact ON transactions(contact_id);
 CREATE INDEX IF NOT EXISTS idx_payments_transaction ON payments(transaction_id);
+
+CREATE TABLE IF NOT EXISTS app_settings (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL
+);
+
+INSERT OR IGNORE INTO app_settings (key, value) VALUES
+  ('feature_contacts', '1'),
+  ('feature_debts', '1'),
+  ('feature_payments', '1'),
+  ('feature_history', '1'),
+  ('feature_delete', '1'),
+  ('feature_multi_currency', '1'),
+  ('feature_due_dates', '1');
 `;
 
 export async function initDB() {
@@ -44,6 +58,20 @@ export async function initDB() {
   await db.open();
   await db.execute('PRAGMA foreign_keys = ON;');
   await db.execute(SCHEMA);
+}
+
+export async function getSetting(key, fallback = null) {
+  const rows = await query('SELECT value FROM app_settings WHERE key = ?', [key]);
+  return rows.length ? rows[0].value : fallback;
+}
+
+export async function setSetting(key, value) {
+  await execute('INSERT INTO app_settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value', [key, String(value)]);
+}
+
+export async function getSettings() {
+  const rows = await query('SELECT key, value FROM app_settings ORDER BY key');
+  return Object.fromEntries(rows.map(r => [r.key, r.value]));
 }
 
 export async function closeDB() {
