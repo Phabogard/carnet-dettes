@@ -1,59 +1,68 @@
-# Offline-First Architecture
+# Mode autonome hors ligne
 
-Carnet de Dettes uses an offline-first design with local SQLite + cloud sync.
+L'application Android peut fonctionner **sans serveur, sans API externe, sans compte bancaire et sans carte bancaire**.
 
-## How It Works
+## Architecture
 
-### Local SQLite
-All data lives in a local SQLite database on the device (via `@capacitor-community/sqlite`):
-- Contacts
-- Transactions (debts, payments)
-- Sync flags (pending_create, pending_update, pending_delete)
-
-### Sync Mechanism
-**Write-through pattern:**
-1. User action → Write to local SQLite immediately
-2. Sync manager detects `pending_*` flags
-3. Async push to backend API (batched)
-4. On success: clear pending flags, refresh UI
-5. On failure: retry with exponential backoff
-
-### Reconnection Logic
-1. App detects network state (Capacitor Network plugin)
-2. On reconnect: fetch server state (GET /summary)
-3. Merge strategy: Server always wins for missing data; local pending changes are retried
-4. Resolved conflicts show in logs and UI toast
-
-## Network Status Handling
-
-```javascript
-// sync.mjs monitors Capacitor.Network
-Network.addListener('networkStatusChange', (status) => {
-  if (status.connected) {
-    syncManager.pushPending(); // Retry pending changes
-  }
-});
+```
+Interface Android
+      |
+      v
+Capacitor
+      |
+      v
+SQLite local du téléphone
+      |
+      +--> contacts
+      +--> dettes
+      +--> remboursements
 ```
 
-## Configuration
+Toutes les opérations principales sont locales :
 
-Server API URL is configurable in-app:
-1. Click the status indicator (top-right corner)
-2. Enter API base URL (e.g., `http://10.0.2.2:8000`)
-3. Click "Test & Sync" to verify
-4. Stored in localStorage as `API_URL`
+- création et suppression de contacts ;
+- création de dettes (« j'ai prêté » / « j'ai emprunté ») ;
+- plusieurs devises ;
+- échéances et détection des retards ;
+- remboursements partiels ;
+- historique des remboursements ;
+- calcul des montants à recevoir et à payer.
 
-## Guarantees
+Aucune requête HTTP n'est nécessaire pour utiliser ces fonctions.
 
-- **Eventually consistent**: All local changes sync when network is available
-- **No data loss**: Pending operations are persisted before marking as synced
-- **Readable offline**: View all data, make changes, sync later
-- **Single source of truth**: Server is the authority for conflict resolution
+## Persistance
 
-## Data Schema
+La base SQLite est ouverte avec `@capacitor-community/sqlite`. Les données sont conservées sur l'appareil après fermeture de l'application.
 
-Local tables match the backend schema:
-- `contacts` (id, name, phone, created_at, pending_create, pending_update, pending_delete)
-- `transactions` (id, contact_id, type, amount, currency, date, due_date, note, status, created_at, updated_at, pending_*)
+Le schéma local utilise :
 
-Pending flags are booleans; the sync manager checks them on startup and every 30 seconds.
+- `contacts`
+- `transactions`
+- `payments`
+
+Les montants restant dus sont calculés à partir des remboursements ; l'application n'a donc pas besoin d'un serveur pour déterminer le statut d'une dette.
+
+## Serveur FastAPI
+
+Le backend Python présent dans le dépôt reste disponible comme **option séparée** pour une future synchronisation ou une utilisation multi-appareils.
+
+Le mode autonome de l'application Android ne l'utilise pas.
+
+## Dépendances
+
+Le code mobile ne charge plus de script JavaScript depuis un CDN et ne nécessite pas d'API de paiement, de banque, de Firebase, de Supabase ou de service cloud pour son fonctionnement normal.
+
+Pour compiler l'APK, il faut toujours l'environnement de développement Android/Capacitor ; cela ne signifie pas qu'un compte bancaire ou une carte bancaire est nécessaire.
+
+## Test
+
+Après installation :
+
+1. Ouvrir l'application.
+2. Ajouter un contact.
+3. Ajouter une dette.
+4. Fermer complètement l'application.
+5. La rouvrir.
+6. Vérifier que le contact et la dette sont toujours présents.
+7. Ajouter un remboursement et vérifier que le solde diminue.
+
