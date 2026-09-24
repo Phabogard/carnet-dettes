@@ -66,6 +66,10 @@ export async function initDB() {
   await db.open();
   await db.execute('PRAGMA foreign_keys = ON;');
   await db.execute(SCHEMA);
+  await ensureColumn('contacts', 'updated_at', 'DATETIME');
+  await ensureColumn('contacts', 'sync_id', 'TEXT');
+  await ensureColumn('transactions', 'sync_id', 'TEXT');
+  await ensureColumn('payments', 'sync_id', 'TEXT');
 }
 
 export async function getSetting(key, fallback = null) {
