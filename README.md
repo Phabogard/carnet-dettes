@@ -6,7 +6,7 @@ Suivi offline-first des prêts et emprunts : contacts, dettes multi-devises, rè
 
 **Backend** : Python + FastAPI + SQLite (SQLAlchemy & Pydantic)
 **App Mobile** : Capacitor + Vanilla JS + SQLite local
-**Sync** : Offline-first avec synchronisation bidirectionnelle au serveur
+**Mobile autonome** : SQLite local, fonctionnement hors ligne sans serveur ni API externe\n**Backend optionnel** : Python + FastAPI + SQLite pour une future synchronisation
 
 ## Structure
 
@@ -47,7 +47,7 @@ uvicorn app.main:app --reload --host 0.0.0.0
 # Docs API  : http://127.0.0.1:8000/docs
 ```
 
-**Important** : `--host 0.0.0.0` pour que le téléphone puisse l'atteindre.
+Le backend est facultatif pour l'application Android autonome.
 
 ### App Android
 
