@@ -8,45 +8,48 @@ CREATE TABLE IF NOT EXISTS contacts (
   id INTEGER PRIMARY KEY,
   name TEXT NOT NULL,
   phone TEXT,
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-  pending_create INTEGER DEFAULT 0,
-  pending_update INTEGER DEFAULT 0,
-  pending_delete INTEGER DEFAULT 0
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS transactions (
   id INTEGER PRIMARY KEY,
-  contact_id INTEGER NOT NULL REFERENCES contacts(id),
-  type TEXT NOT NULL,
-  amount REAL NOT NULL,
-  currency TEXT DEFAULT 'USD',
+  contact_id INTEGER NOT NULL REFERENCES contacts(id) ON DELETE CASCADE,
+  type TEXT NOT NULL CHECK(type IN ('lent', 'borrowed')),
+  amount REAL NOT NULL CHECK(amount > 0),
+  currency TEXT NOT NULL DEFAULT 'USD',
   date TEXT NOT NULL,
   due_date TEXT,
   note TEXT,
-  status TEXT DEFAULT 'unpaid',
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-  pending_create INTEGER DEFAULT 0,
-  pending_update INTEGER DEFAULT 0,
-  pending_delete INTEGER DEFAULT 0
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE IF NOT EXISTS payments (
+  id INTEGER PRIMARY KEY,
+  transaction_id INTEGER NOT NULL REFERENCES transactions(id) ON DELETE CASCADE,
+  amount REAL NOT NULL CHECK(amount > 0),
+  date TEXT NOT NULL,
+  note TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_transactions_contact ON transactions(contact_id);
+CREATE INDEX IF NOT EXISTS idx_payments_transaction ON payments(transaction_id);
 `;
 
 export async function initDB() {
-  try {
-    await sqlite.createConnection('carnet-dettes', false, 'no-encryption', 1, false);
-    db = await sqlite.retrieveConnection('carnet-dettes', false);
-    await db.open();
-    await db.execute(SCHEMA);
-    console.log('Database initialized');
-  } catch (error) {
-    console.error('Failed to init DB:', error);
-    throw error;
-  }
+  if (db) return;
+  await sqlite.createConnection('carnet-dettes', false, 'no-encryption', 1, false);
+  db = await sqlite.retrieveConnection('carnet-dettes', false);
+  await db.open();
+  await db.execute(SCHEMA);
 }
 
 export async function closeDB() {
-  if (db) await sqlite.closeConnection('carnet-dettes', false);
+  if (db) {
+    await sqlite.closeConnection('carnet-dettes', false);
+    db = null;
+  }
 }
 
 export async function execute(sql, values = []) {
@@ -60,79 +63,133 @@ export async function query(sql, values = []) {
   return result.values || [];
 }
 
-// CRUD operations
-export async function createContact(name, phone) {
+export async function createContact(name, phone = '') {
   const result = await execute(
-    'INSERT INTO contacts (name, phone, pending_create) VALUES (?, ?, 1)',
-    [name, phone]
+    'INSERT INTO contacts (name, phone) VALUES (?, ?)',
+    [name.trim(), phone.trim()]
   );
   return result.lastID;
 }
 
 export async function getContacts() {
-  return query('SELECT * FROM contacts WHERE pending_delete = 0 ORDER BY name ASC');
+  return query('SELECT * FROM contacts ORDER BY name COLLATE NOCASE ASC');
 }
 
-export async function updateContact(id, name, phone) {
+export async function updateContact(id, name, phone = '') {
   await execute(
-    'UPDATE contacts SET name = ?, phone = ?, pending_update = 1 WHERE id = ?',
-    [name, phone, id]
+    'UPDATE contacts SET name = ?, phone = ? WHERE id = ?',
+    [name.trim(), phone.trim(), id]
   );
 }
 
 export async function deleteContact(id) {
-  await execute('UPDATE contacts SET pending_delete = 1 WHERE id = ?', [id]);
+  await execute('DELETE FROM contacts WHERE id = ?', [id]);
 }
 
-export async function createTransaction(contactId, type, amount, currency, date, dueDate, note) {
+export async function createTransaction(contactId, type, amount, currency, date, dueDate, note = '') {
   const result = await execute(
-    `INSERT INTO transactions (contact_id, type, amount, currency, date, due_date, note, pending_create)
-     VALUES (?, ?, ?, ?, ?, ?, ?, 1)`,
-    [contactId, type, amount, currency, date, dueDate, note]
+    `INSERT INTO transactions
+      (contact_id, type, amount, currency, date, due_date, note, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+    [contactId, type, amount, currency.trim().toUpperCase(), date, dueDate || null, note.trim()]
   );
   return result.lastID;
 }
 
 export async function getTransactions(contactId = null) {
-  let sql = 'SELECT * FROM transactions WHERE pending_delete = 0';
+  let sql = `
+    SELECT t.*, c.name AS contact_name,
+           COALESCE((SELECT SUM(p.amount) FROM payments p WHERE p.transaction_id = t.id), 0) AS paid_amount
+    FROM transactions t
+    JOIN contacts c ON c.id = t.contact_id
+  `;
   const values = [];
-  if (contactId) {
-    sql += ' AND contact_id = ?';
+  if (contactId !== null) {
+    sql += ' WHERE t.contact_id = ?';
     values.push(contactId);
   }
-  sql += ' ORDER BY date DESC';
+  sql += ' ORDER BY t.date DESC, t.id DESC';
   return query(sql, values);
 }
 
-export async function updateTransaction(id, status, amount = null) {
-  let sql = 'UPDATE transactions SET pending_update = 1';
-  const values = [];
-  if (status) {
-    sql += ', status = ?';
-    values.push(status);
-  }
-  if (amount !== null) {
-    sql += ', amount = ?';
-    values.push(amount);
-  }
-  sql += ' WHERE id = ?';
-  values.push(id);
-  await execute(sql, values);
+export async function getTransaction(id) {
+  const rows = await getTransactions();
+  return rows.find(t => Number(t.id) === Number(id)) || null;
 }
 
-export async function getPending() {
-  const contacts = await query(
-    'SELECT * FROM contacts WHERE pending_create = 1 OR pending_update = 1 OR pending_delete = 1'
+export async function addPayment(transactionId, amount, date, note = '') {
+  const transaction = await getTransaction(transactionId);
+  if (!transaction) throw new Error('Dette introuvable');
+
+  const remaining = Number(transaction.amount) - Number(transaction.paid_amount || 0);
+  if (amount <= 0) throw new Error('Le montant doit être supérieur à zéro');
+  if (amount > remaining + 0.005) {
+    throw new Error(`Le paiement dépasse le solde restant de ${remaining.toFixed(2)} ${transaction.currency}`);
+  }
+
+  const result = await execute(
+    'INSERT INTO payments (transaction_id, amount, date, note) VALUES (?, ?, ?, ?)',
+    [transactionId, amount, date, note.trim()]
   );
-  const transactions = await query(
-    'SELECT * FROM transactions WHERE pending_create = 1 OR pending_update = 1 OR pending_delete = 1'
-  );
-  return { contacts, transactions };
+  await execute('UPDATE transactions SET updated_at = CURRENT_TIMESTAMP WHERE id = ?', [transactionId]);
+  return result.lastID;
 }
 
-export async function clearPending(type, id) {
-  await execute(
-    `UPDATE ${type} SET pending_create = 0, pending_update = 0, pending_delete = 0 WHERE id = ?`,
-    [id]
+export async function getPayments(transactionId) {
+  return query(
+    'SELECT * FROM payments WHERE transaction_id = ? ORDER BY date DESC, id DESC',
+    [transactionId]
   );
+}
+
+export async function deletePayment(id) {
+  await execute('DELETE FROM payments WHERE id = ?', [id]);
+}
+
+export async function deleteTransaction(id) {
+  await execute('DELETE FROM transactions WHERE id = ?', [id]);
+}
+
+export async function getSummary() {
+  const rows = await query(`
+    SELECT t.currency, t.type, t.amount,
+           COALESCE((SELECT SUM(p.amount) FROM payments p WHERE p.transaction_id = t.id), 0) AS paid_amount
+    FROM transactions t
+  `);
+
+  const summary = {};
+  for (const row of rows) {
+    const remaining = Math.max(0, Number(row.amount) - Number(row.paid_amount || 0));
+    if (remaining <= 0.005) continue;
+    const currency = row.currency || 'USD';
+    if (!summary[currency]) {
+      summary[currency] = { currency, to_receive: 0, to_pay: 0 };
+    }
+    if (row.type === 'lent') summary[currency].to_receive += remaining;
+    else summary[currency].to_pay += remaining;
+  }
+
+  return Object.values(summary).map(item => ({
+    ...item,
+    to_receive: Number(item.to_receive.toFixed(2)),
+    to_pay: Number(item.to_pay.toFixed(2)),
+    net: Number((item.to_receive - item.to_pay).toFixed(2))
+  }));
+}
+
+export async function getDashboardStats() {
+  const transactions = await getTransactions();
+  const today = new Date().toISOString().slice(0, 10);
+  let overdue = 0;
+  let totalOpen = 0;
+
+  for (const t of transactions) {
+    const remaining = Number(t.amount) - Number(t.paid_amount || 0);
+    if (remaining > 0.005) {
+      totalOpen++;
+      if (t.due_date && t.due_date < today) overdue++;
+    }
+  }
+
+  return { contacts: (await getContacts()).length, transactions: transactions.length, open: totalOpen, overdue };
 }
