@@ -3,6 +3,13 @@ import { CapacitorSQLite, SQLiteConnection } from '@capacitor-community/sqlite';
 const sqlite = new SQLiteConnection(CapacitorSQLite);
 let db = null;
 
+async function ensureColumn(table, column, definition) {
+  const rows = await query(`PRAGMA table_info(${table})`);
+  if (!rows.some(row => row.name === column)) {
+    await execute(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+  }
+}
+
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS contacts (
   id INTEGER PRIMARY KEY,
