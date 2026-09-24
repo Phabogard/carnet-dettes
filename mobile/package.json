@@ -5,9 +5,8 @@
   "description": "Wrapper Capacitor Android pour le Carnet de Dettes",
   "type": "module",
   "scripts": {
-    "sync:web": "node scripts/sync-web.mjs",
-    "android:add": "npm run sync:web && npx cap add android",
-    "sync": "npm run sync:web && npx cap sync android",
+    "android:add": "npx cap add android",
+    "sync": "npx cap sync android",
     "open": "npx cap open android",
     "run": "npm run sync && npx cap run android",
     "build:apk": "npm run sync && cd android && ./gradlew assembleDebug",
