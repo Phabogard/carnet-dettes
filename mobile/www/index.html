@@ -45,7 +45,7 @@
 <div class="container">
   <header>
     <h1>📒 Carnet de Dettes</h1>
-    <span class="offline">● Hors ligne</span>
+    <span id="sync-status" class="offline" title="Synchronisation facultative">● Hors ligne</span>
   </header>
 
   <div class="tabs">
@@ -83,6 +83,26 @@
         <div id="feature-list" class="stack"></div>
         <div class="actions"><button class="secondary small" id="admin-lock-btn">Verrouiller</button></div>
       </div>
+    </div>
+  </section>
+
+  <section id="admin" class="tab-content">
+    <div class="item">
+      <h2>Administration locale</h2>
+      <p class="muted">Les réglages locaux fonctionnent sans Internet. La synchronisation serveur reste facultative.</p>
+      <div id="admin-lock">
+        <div class="field"><label>PIN administrateur</label><input id="admin-pin" type="password" inputmode="numeric" maxlength="12" placeholder="4 à 12 chiffres"></div>
+        <button id="admin-login">Déverrouiller</button>
+      </div>
+      <div id="admin-panel" style="display:none">
+        <div id="feature-list" class="stack"></div>
+        <div class="actions"><button class="secondary small" id="admin-lock-btn">Verrouiller</button></div>
+      </div>
+      <hr style="margin:16px 0;border:0;border-top:1px solid var(--line)">
+      <h3>Synchronisation facultative</h3>
+      <p class="muted">Aucune carte bancaire n'est requise par l'application. Si un serveur gratuit est disponible, son adresse peut être configurée ici.</p>
+      <div class="field"><label>URL du serveur</label><input id="api-url" type="url" placeholder="http://10.0.2.2:8000"></div>
+      <div class="actions"><button class="small" id="save-api">Enregistrer</button><button class="secondary small" id="test-api">Tester</button></div>
     </div>
   </section>
 </div>
@@ -190,6 +210,10 @@
     document.querySelectorAll('[data-delete-debt]').forEach(b=>b.onclick=async()=>{if(confirm('Supprimer cette dette ?')){await db.deleteTransaction(b.dataset.deleteDebt);await refresh();}});
   }
 
+  const apiKey='carnet_api_url';
+  function getApiUrl(){ return localStorage.getItem(apiKey)||''; }
+  function setApiUrl(v){ if(v) localStorage.setItem(apiKey,v.replace(/\/$/,'')); else localStorage.removeItem(apiKey); }
+  async function testApi(){ const u=getApiUrl(); if(!u)return false; try{const r=await fetch(u+'/api/health');return r.ok;}catch{return false;} }
   async function hashPin(pin) { const data = new TextEncoder().encode(pin); const hash = await crypto.subtle.digest('SHA-256', data); return Array.from(new Uint8Array(hash)).map(b=>b.toString(16).padStart(2,'0')).join(''); }
   const featureLabels = { feature_contacts:'Contacts', feature_debts:'Dettes', feature_payments:'Remboursements', feature_history:'Historique', feature_delete:'Suppression', feature_multi_currency:'Multi-devises', feature_due_dates:'Échéances' };
   async function applyFeatures() {
@@ -211,6 +235,12 @@
     document.getElementById('admin-lock').style.display='none'; document.getElementById('admin-panel').style.display='block'; await loadFeaturePanel();
   }
   document.getElementById('admin-login').onclick=unlockAdmin;
+  document.getElementById('api-url').value=getApiUrl();
+  document.getElementById('save-api').onclick=()=>{setApiUrl(document.getElementById('api-url').value.trim());updateSyncStatus();};
+  document.getElementById('test-api').onclick=async()=>{setApiUrl(document.getElementById('api-url').value.trim()); const ok=await testApi(); alert(ok?'Serveur accessible.':'Serveur inaccessible — mode hors ligne conservé.'); updateSyncStatus();};
+  document.getElementById('sync-status').onclick=()=>{document.querySelector('[data-tab="admin"]').click();};
+  async function updateSyncStatus(){const el=document.getElementById('sync-status'); if(await testApi()){el.textContent='● En ligne';}else{el.textContent='● Hors ligne';}}
+
   document.getElementById('admin-lock-btn').onclick=()=>{document.getElementById('admin-panel').style.display='none';document.getElementById('admin-lock').style.display='block';document.getElementById('admin-pin').value='';};
 
   window.showContactForm=()=>openModal('contact-modal');
@@ -275,7 +305,7 @@
     btn.classList.add('active'); document.getElementById(btn.dataset.tab).classList.add('active');
   });
 
-  (async()=>{try{await db.initDB();await applyFeatures();await refresh();}catch(e){console.error(e);alert('Impossible d’ouvrir la base locale : '+e.message);}})();
+  (async()=>{try{await db.initDB();await applyFeatures();await refresh();await updateSyncStatus();}catch(e){console.error(e);alert('Impossible d’ouvrir la base locale : '+e.message);}})();
 </script>
 </body>
 </html>
