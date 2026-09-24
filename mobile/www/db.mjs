@@ -97,6 +97,10 @@ export async function getSettings() {
   return Object.fromEntries(rows.map(r => [r.key, r.value]));
 }
 
+async function queueSync(entity, entityId, action = 'upsert') {
+  await execute('INSERT INTO sync_queue (entity, entity_id, action) VALUES (?, ?, ?)', [entity, entityId, action]);
+}
+
 export async function closeDB() {
   if (db) {
     await sqlite.closeConnection('carnet-dettes', false);
