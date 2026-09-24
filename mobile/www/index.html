@@ -51,7 +51,8 @@
   <div class="tabs">
     <button class="tab-btn active" data-tab="summary">Résumé</button>
     <button class="tab-btn" data-tab="contacts">Contacts</button>
-    <button class="tab-btn" data-tab="debts">Dettes</button>
+    <button class="tab-btn" data-tab="debts" data-feature="debts">Dettes</button>
+    <button class="tab-btn" data-tab="admin">⚙️ Admin</button>
   </div>
 
   <section id="summary" class="tab-content active">
@@ -67,6 +68,22 @@
   <section id="debts" class="tab-content">
     <div class="row" style="margin-bottom:12px"><h2>Dettes</h2><button onclick="showDebtForm()">+ Ajouter</button></div>
     <div id="debts-list"></div>
+  </section>
+
+  <section id="admin" class="tab-content">
+    <div class="item">
+      <h2>Administration locale</h2>
+      <p class="muted">Les réglages sont stockés sur cet appareil et fonctionnent sans Internet.</p>
+      <div id="admin-lock">
+        <div class="field"><label>PIN administrateur</label><input id="admin-pin" type="password" inputmode="numeric" maxlength="12" placeholder="Créer ou saisir le PIN"></div>
+        <button id="admin-login">Déverrouiller</button>
+      </div>
+      <div id="admin-panel" style="display:none">
+        <p><strong>Fonctionnalités</strong></p>
+        <div id="feature-list" class="stack"></div>
+        <div class="actions"><button class="secondary small" id="admin-lock-btn">Verrouiller</button></div>
+      </div>
+    </div>
   </section>
 </div>
 
@@ -173,15 +190,38 @@
     document.querySelectorAll('[data-delete-debt]').forEach(b=>b.onclick=async()=>{if(confirm('Supprimer cette dette ?')){await db.deleteTransaction(b.dataset.deleteDebt);await refresh();}});
   }
 
+  async function hashPin(pin) { const data = new TextEncoder().encode(pin); const hash = await crypto.subtle.digest('SHA-256', data); return Array.from(new Uint8Array(hash)).map(b=>b.toString(16).padStart(2,'0')).join(''); }
+  const featureLabels = { feature_contacts:'Contacts', feature_debts:'Dettes', feature_payments:'Remboursements', feature_history:'Historique', feature_delete:'Suppression', feature_multi_currency:'Multi-devises', feature_due_dates:'Échéances' };
+  async function applyFeatures() {
+    const s=await db.getSettings();
+    document.querySelectorAll('[data-feature]').forEach(el=>{ const k='feature_'+el.dataset.feature; el.style.display=s[k]==='1'?'':'none'; });
+    document.querySelectorAll('[data-feature-button]').forEach(el=>{ const k=el.dataset.featureButton; el.style.display=s[k]==='1'?'':'none'; });
+    document.getElementById('debt-currency').disabled=s.feature_multi_currency!=='1';
+    document.getElementById('debt-due').disabled=s.feature_due_dates!=='1';
+  }
+  async function loadFeaturePanel() {
+    const s=await db.getSettings(); const list=document.getElementById('feature-list');
+    list.innerHTML=Object.entries(featureLabels).map(([k,label])=>`<label class="row"><span>${label}</span><input type="checkbox" data-setting="${k}" ${s[k]==='1'?'checked':''} style="width:auto"></label>`).join('');
+    list.querySelectorAll('[data-setting]').forEach(x=>x.onchange=async()=>{await db.setSetting(x.dataset.setting,x.checked?'1':'0');await applyFeatures();});
+  }
+  async function unlockAdmin() {
+    const pin=document.getElementById('admin-pin').value.trim(); if(!/^\d{4,12}$/.test(pin)){alert('PIN: 4 à 12 chiffres.');return;}
+    const stored=await db.getSetting('admin_pin_hash'); const hashed=await hashPin(pin);
+    if(!stored){await db.setSetting('admin_pin_hash',hashed);} else if(stored!==hashed){alert('PIN incorrect.');return;}
+    document.getElementById('admin-lock').style.display='none'; document.getElementById('admin-panel').style.display='block'; await loadFeaturePanel();
+  }
+  document.getElementById('admin-login').onclick=unlockAdmin;
+  document.getElementById('admin-lock-btn').onclick=()=>{document.getElementById('admin-panel').style.display='none';document.getElementById('admin-lock').style.display='block';document.getElementById('admin-pin').value='';};
+
   window.showContactForm=()=>openModal('contact-modal');
-  window.showDebtForm=async()=>{
+  window.showDebtForm=async()=>{ if((await db.getSetting('feature_debts','1'))!=='1') return; 
     const contacts=await db.getContacts();
     if(!contacts.length){alert('Ajoute d’abord un contact.'); return;}
     document.getElementById('debt-contact').innerHTML=contacts.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('');
     document.getElementById('debt-date').value=today();
     openModal('debt-modal');
   };
-  window.showPaymentForm=async(id)=>{
+  window.showPaymentForm=async(id)=>{ if((await db.getSetting('feature_payments','1'))!=='1') return; 
     const t=await db.getTransaction(id); if(!t)return;
     document.getElementById('payment-debt-id').value=id;
     document.getElementById('payment-info').textContent=`Reste à payer : ${money(remaining(t),t.currency)}`;
@@ -189,7 +229,7 @@
     document.getElementById('payment-date').value=today();
     openModal('payment-modal');
   };
-  window.showHistory=async(id)=>{
+  window.showHistory=async(id)=>{ if((await db.getSetting('feature_history','1'))!=='1') return; 
     const t=await db.getTransaction(id), payments=await db.getPayments(id);
     alert(payments.length ? payments.map(p=>`${p.date} — ${money(p.amount,t.currency)}${p.note?' — '+p.note:''}`).join('\n') : 'Aucun remboursement.');
   };
@@ -235,7 +275,7 @@
     btn.classList.add('active'); document.getElementById(btn.dataset.tab).classList.add('active');
   });
 
-  (async()=>{try{await db.initDB();await refresh();}catch(e){console.error(e);alert('Impossible d’ouvrir la base locale : '+e.message);}})();
+  (async()=>{try{await db.initDB();await applyFeatures();await refresh();}catch(e){console.error(e);alert('Impossible d’ouvrir la base locale : '+e.message);}})();
 </script>
 </body>
 </html>
