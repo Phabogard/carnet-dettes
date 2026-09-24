@@ -2,15 +2,15 @@
 
 ## Prerequisites
 - Node.js 18+
-- Java JDK 11+
+- Java JDK 17+
 - Android SDK (API 30+)
 - Capacitor CLI: `npm install -g @capacitor/cli`
 
 ## Build APK
 
-1. Build the web assets:
+1. Install dependencies:
    ```bash
-   npm run build:web
+   npm install
    ```
 
 2. Create Android project:
@@ -32,17 +32,9 @@
    - Build > Build Bundle(s) / APK(s) > Build APK(s)
    - Or use: `./gradlew assembleDebug` from the android folder
 
-## Network Configuration
+## Offline mode
 
-The app requests cleartext (HTTP) and custom domains via `android/app/src/main/res/xml/network_security_config.xml`. For development, enable HTTP and add your server domain.
-
-## SQLite Permissions
-
-The `@capacitor-community/sqlite` plugin requires:
-- READ/WRITE_EXTERNAL_STORAGE (Android 5-10)
-- Handled automatically on Android 11+
-
-Check `capacitor.config.json` for plugin configuration.
+The mobile application stores contacts, debts and repayments locally in SQLite. Internet access and a backend server are not required for normal use.
 
 ## Debugging
 
