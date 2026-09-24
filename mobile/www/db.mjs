@@ -74,6 +74,13 @@ export async function initDB() {
   await ensureColumn('contacts', 'sync_id', 'TEXT');
   await ensureColumn('transactions', 'sync_id', 'TEXT');
   await ensureColumn('payments', 'sync_id', 'TEXT');
+  await execute("UPDATE contacts SET updated_at = COALESCE(updated_at, created_at, CURRENT_TIMESTAMP) WHERE updated_at IS NULL");
+  await execute("UPDATE contacts SET sync_id = 'legacy-contact-' || id WHERE sync_id IS NULL OR sync_id = ''");
+  await execute("UPDATE transactions SET sync_id = 'legacy-transaction-' || id WHERE sync_id IS NULL OR sync_id = ''");
+  await execute("UPDATE payments SET sync_id = 'legacy-payment-' || id WHERE sync_id IS NULL OR sync_id = ''");
+  await execute('CREATE INDEX IF NOT EXISTS idx_contacts_sync_id ON contacts(sync_id)');
+  await execute('CREATE INDEX IF NOT EXISTS idx_transactions_sync_id ON transactions(sync_id)');
+  await execute('CREATE INDEX IF NOT EXISTS idx_payments_sync_id ON payments(sync_id)');
 }
 
 export async function getSetting(key, fallback = null) {
