@@ -50,7 +50,7 @@
 
   <div class="tabs">
     <button class="tab-btn active" data-tab="summary">Résumé</button>
-    <button class="tab-btn" data-tab="contacts">Contacts</button>
+    <button class="tab-btn" data-tab="contacts" data-feature="contacts">Contacts</button>
     <button class="tab-btn" data-tab="debts" data-feature="debts">Dettes</button>
     <button class="tab-btn" data-tab="admin">⚙️ Admin</button>
   </div>
@@ -61,12 +61,12 @@
   </section>
 
   <section id="contacts" class="tab-content">
-    <div class="row" style="margin-bottom:12px"><h2>Contacts</h2><button onclick="showContactForm()">+ Ajouter</button></div>
+    <div class="row" style="margin-bottom:12px"><h2>Contacts</h2><button onclick="showContactForm()" data-feature-button="feature_contacts">+ Ajouter</button></div>
     <div id="contacts-list"></div>
   </section>
 
   <section id="debts" class="tab-content">
-    <div class="row" style="margin-bottom:12px"><h2>Dettes</h2><button onclick="showDebtForm()">+ Ajouter</button></div>
+    <div class="row" style="margin-bottom:12px"><h2>Dettes</h2><button onclick="showDebtForm()" data-feature-button="feature_debts">+ Ajouter</button></div>
     <div id="debts-list"></div>
   </section>
 
@@ -164,7 +164,7 @@
     const contacts = await db.getContacts();
     document.getElementById('contacts-list').innerHTML = contacts.length ? contacts.map(c=>`
       <div class="item"><div class="row"><div><h3>${esc(c.name)}</h3><span class="muted">${esc(c.phone || 'Aucun téléphone')}</span></div>
-      <button class="danger small" data-delete-contact="${c.id}">Supprimer</button></div></div>`).join('') : '<div class="empty">Aucun contact.</div>';
+      <button class="danger small" data-delete-contact="${c.id}" data-feature-button="feature_delete">Supprimer</button></div></div>`).join('') : '<div class="empty">Aucun contact.</div>';
     document.querySelectorAll('[data-delete-contact]').forEach(b=>b.onclick=async()=>{ if(confirm('Supprimer ce contact et ses dettes ?')){await db.deleteContact(b.dataset.deleteContact); await refresh();}});
   }
 
@@ -178,9 +178,9 @@
         <p class="muted">Date: ${esc(t.date)}${t.due_date?' · Échéance: '+esc(t.due_date):''}</p>
         ${t.note?'<p class="muted">'+esc(t.note)+'</p>':''}
         <div class="actions">
-          ${r>0.005?'<button class="small" data-pay="'+t.id+'">Rembourser</button>':''}
-          <button class="secondary small" data-history="${t.id}">Historique</button>
-          <button class="danger small" data-delete-debt="${t.id}">Supprimer</button>
+          ${r>0.005?'<button class="small" data-pay="'+t.id+'" data-feature-button="feature_payments">Rembourser</button>':''}
+          <button class="secondary small" data-history="${t.id}" data-feature-button="feature_history">Historique</button>
+          <button class="danger small" data-delete-debt="${t.id}" data-feature-button="feature_delete">Supprimer</button>
         </div>
       </div>`;
     }).join('') : '<div class="empty">Aucune dette.</div>';
