@@ -1,395 +1,241 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Carnet de Dettes - Debt Tracker" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Carnet de Dettes - application locale hors ligne">
   <title>Carnet de Dettes</title>
-  <script src="https://cdn.jsdelivr.net/npm/@capacitor/core@latest/dist/capacitor.js"></script>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-      background: #f5f5f5;
-      color: #333;
-      line-height: 1.5;
-    }
-    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-    header {
-      background: #2c3e50;
-      color: white;
-      padding: 20px;
-      margin: -20px -20px 20px -20px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    header h1 { font-size: 1.5rem; }
-    #sync-status {
-      background: rgba(255,255,255,0.2);
-      padding: 4px 12px;
-      border-radius: 4px;
-      font-size: 0.85rem;
-      cursor: pointer;
-    }
-    .tabs {
-      display: flex;
-      gap: 10px;
-      margin-bottom: 20px;
-      border-bottom: 1px solid #ddd;
-    }
-    .tab-btn {
-      padding: 10px 15px;
-      border: none;
-      background: none;
-      cursor: pointer;
-      font-size: 1rem;
-      border-bottom: 3px solid transparent;
-      color: #666;
-      transition: all 0.2s;
-    }
-    .tab-btn.active {
-      color: #2c3e50;
-      border-bottom-color: #2c3e50;
-    }
-    .tab-content { display: none; }
-    .tab-content.active { display: block; }
-    .form-group {
-      margin-bottom: 15px;
-    }
-    label {
-      display: block;
-      font-weight: 500;
-      margin-bottom: 5px;
-    }
-    input, select, textarea {
-      width: 100%;
-      padding: 10px;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-      font-size: 1rem;
-      font-family: inherit;
-    }
-    textarea { resize: vertical; }
-    button {
-      background: #2c3e50;
-      color: white;
-      padding: 10px 20px;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 1rem;
-      transition: background 0.2s;
-    }
-    button:hover { background: #1a252f; }
-    button.danger {
-      background: #e74c3c;
-    }
-    button.danger:hover { background: #c0392b; }
-    .list-item {
-      background: white;
-      padding: 15px;
-      margin-bottom: 10px;
-      border-radius: 4px;
-      border-left: 4px solid #2c3e50;
-    }
-    .list-item h3 {
-      margin-bottom: 5px;
-      font-size: 1rem;
-    }
-    .list-item p {
-      font-size: 0.9rem;
-      color: #666;
-      margin: 5px 0;
-    }
-    .balance {
-      background: #ecf0f1;
-      padding: 15px;
-      border-radius: 4px;
-      margin-bottom: 20px;
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 15px;
-    }
-    .balance-item {
-      text-align: center;
-    }
-    .balance-item .value {
-      font-size: 1.5rem;
-      font-weight: bold;
-      color: #2c3e50;
-    }
-    .balance-item .label {
-      font-size: 0.85rem;
-      color: #666;
-    }
-    .modal {
-      display: none;
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0,0,0,0.5);
-      z-index: 1000;
-      align-items: center;
-      justify-content: center;
-    }
-    .modal.active {
-      display: flex;
-    }
-    .modal-content {
-      background: white;
-      padding: 30px;
-      border-radius: 8px;
-      max-width: 400px;
-      width: 90%;
-    }
-    .modal-content h2 {
-      margin-bottom: 20px;
-    }
-    .modal-actions {
-      display: flex;
-      gap: 10px;
-      margin-top: 20px;
-    }
-    .modal-actions button { flex: 1; }
+    :root { --bg:#f5f6f8; --card:#fff; --ink:#17202a; --muted:#68717d; --primary:#263b53; --danger:#c0392b; --ok:#277a45; --line:#e2e6ea; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:system-ui,-apple-system,Segoe UI,sans-serif; background:var(--bg); color:var(--ink); }
+    .container { max-width:720px; margin:auto; padding:16px; }
+    header { background:var(--primary); color:#fff; padding:18px; margin:-16px -16px 16px; display:flex; justify-content:space-between; align-items:center; }
+    header h1 { margin:0; font-size:1.35rem; }
+    .offline { font-size:.8rem; background:rgba(255,255,255,.16); padding:6px 10px; border-radius:20px; }
+    .tabs { display:flex; gap:6px; overflow:auto; margin-bottom:16px; border-bottom:1px solid var(--line); }
+    .tab-btn { border:0; background:none; color:var(--muted); padding:11px 13px; font-weight:600; }
+    .tab-btn.active { color:var(--primary); border-bottom:3px solid var(--primary); }
+    .tab-content { display:none; } .tab-content.active { display:block; }
+    .cards { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:16px; }
+    .card,.item { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:15px; }
+    .card strong { display:block; font-size:1.25rem; margin-top:5px; }
+    .muted { color:var(--muted); font-size:.88rem; }
+    .item { margin-bottom:10px; }
+    .item h3 { margin:0 0 5px; font-size:1rem; }
+    .row { display:flex; gap:8px; align-items:center; justify-content:space-between; }
+    .stack { display:grid; gap:8px; }
+    button { border:0; border-radius:9px; padding:10px 14px; background:var(--primary); color:#fff; font-weight:600; }
+    button.secondary { background:#e9edf1; color:var(--ink); } button.danger { background:var(--danger); }
+    button.small { padding:7px 9px; font-size:.82rem; }
+    input,select,textarea { width:100%; padding:10px; border:1px solid #ccd3da; border-radius:8px; font:inherit; }
+    label { display:block; font-weight:600; margin-bottom:5px; }
+    .field { margin-bottom:12px; }
+    .actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
+    .badge { display:inline-block; padding:3px 7px; border-radius:12px; background:#edf0f3; font-size:.75rem; }
+    .badge.ok { color:var(--ok); background:#e7f4eb; } .badge.late { color:var(--danger); background:#fbe9e7; }
+    .empty { text-align:center; color:var(--muted); padding:30px 10px; }
+    .modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,.48); align-items:center; justify-content:center; z-index:10; }
+    .modal.active { display:flex; } .modal-content { width:min(94%,460px); max-height:90vh; overflow:auto; background:#fff; border-radius:14px; padding:20px; }
+    .modal-content h2 { margin-top:0; } .modal-actions { display:flex; gap:8px; margin-top:16px; } .modal-actions button { flex:1; }
+    @media(max-width:460px){ .cards{grid-template-columns:1fr;} }
   </style>
 </head>
 <body>
-  <div class="container">
-    <header>
-      <h1>Carnet de Dettes</h1>
-      <span id="sync-status">⏳ Init</span>
-    </header>
+<div class="container">
+  <header>
+    <h1>📒 Carnet de Dettes</h1>
+    <span class="offline">● Hors ligne</span>
+  </header>
 
-    <div class="tabs">
-      <button class="tab-btn active" data-tab="summary">Summary</button>
-      <button class="tab-btn" data-tab="contacts">Contacts</button>
-      <button class="tab-btn" data-tab="transactions">Transactions</button>
-    </div>
-
-    <!-- Summary Tab -->
-    <div id="summary" class="tab-content active">
-      <div class="balance">
-        <div class="balance-item">
-          <div class="value" id="to-receive">$0</div>
-          <div class="label">To Receive</div>
-        </div>
-        <div class="balance-item">
-          <div class="value" id="to-pay">$0</div>
-          <div class="label">To Pay</div>
-        </div>
-      </div>
-      <div id="summary-list"></div>
-    </div>
-
-    <!-- Contacts Tab -->
-    <div id="contacts" class="tab-content">
-      <div class="form-group">
-        <button onclick="showContactForm()">+ Add Contact</button>
-      </div>
-      <div id="contacts-list"></div>
-    </div>
-
-    <!-- Transactions Tab -->
-    <div id="transactions" class="tab-content">
-      <div class="form-group">
-        <button onclick="showTransactionForm()">+ Add Transaction</button>
-      </div>
-      <div id="transactions-list"></div>
-    </div>
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="summary">Résumé</button>
+    <button class="tab-btn" data-tab="contacts">Contacts</button>
+    <button class="tab-btn" data-tab="debts">Dettes</button>
   </div>
 
-  <!-- Contact Form Modal -->
-  <div id="contact-modal" class="modal">
-    <div class="modal-content">
-      <h2>Add Contact</h2>
-      <form id="contact-form">
-        <div class="form-group">
-          <label>Name</label>
-          <input type="text" id="contact-name" required />
-        </div>
-        <div class="form-group">
-          <label>Phone</label>
-          <input type="tel" id="contact-phone" />
-        </div>
-        <div class="modal-actions">
-          <button type="button" onclick="closeModal('contact-modal')">Cancel</button>
-          <button type="submit">Save</button>
-        </div>
-      </form>
-    </div>
+  <section id="summary" class="tab-content active">
+    <div id="stats" class="cards"></div>
+    <div id="summary-list"></div>
+  </section>
+
+  <section id="contacts" class="tab-content">
+    <div class="row" style="margin-bottom:12px"><h2>Contacts</h2><button onclick="showContactForm()">+ Ajouter</button></div>
+    <div id="contacts-list"></div>
+  </section>
+
+  <section id="debts" class="tab-content">
+    <div class="row" style="margin-bottom:12px"><h2>Dettes</h2><button onclick="showDebtForm()">+ Ajouter</button></div>
+    <div id="debts-list"></div>
+  </section>
+</div>
+
+<div id="contact-modal" class="modal">
+  <div class="modal-content">
+    <h2>Nouveau contact</h2>
+    <form id="contact-form">
+      <div class="field"><label>Nom</label><input id="contact-name" required maxlength="120"></div>
+      <div class="field"><label>Téléphone</label><input id="contact-phone" type="tel"></div>
+      <div class="modal-actions"><button type="button" class="secondary" onclick="closeModal('contact-modal')">Annuler</button><button>Enregistrer</button></div>
+    </form>
   </div>
+</div>
 
-  <!-- Transaction Form Modal -->
-  <div id="transaction-modal" class="modal">
-    <div class="modal-content">
-      <h2>Add Transaction</h2>
-      <form id="transaction-form">
-        <div class="form-group">
-          <label>Contact</label>
-          <select id="transaction-contact" required></select>
-        </div>
-        <div class="form-group">
-          <label>Type</label>
-          <select id="transaction-type" required>
-            <option value="lent">I Lent</option>
-            <option value="borrowed">I Borrowed</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>Amount</label>
-          <input type="number" id="transaction-amount" step="0.01" required />
-        </div>
-        <div class="form-group">
-          <label>Currency</label>
-          <input type="text" id="transaction-currency" value="USD" />
-        </div>
-        <div class="form-group">
-          <label>Date</label>
-          <input type="date" id="transaction-date" required />
-        </div>
-        <div class="form-group">
-          <label>Due Date</label>
-          <input type="date" id="transaction-due-date" />
-        </div>
-        <div class="form-group">
-          <label>Note</label>
-          <textarea id="transaction-note"></textarea>
-        </div>
-        <div class="modal-actions">
-          <button type="button" onclick="closeModal('transaction-modal')">Cancel</button>
-          <button type="submit">Save</button>
-        </div>
-      </form>
-    </div>
+<div id="debt-modal" class="modal">
+  <div class="modal-content">
+    <h2>Nouvelle dette</h2>
+    <form id="debt-form">
+      <div class="field"><label>Contact</label><select id="debt-contact" required></select></div>
+      <div class="field"><label>Type</label><select id="debt-type"><option value="lent">💰 J'ai prêté</option><option value="borrowed">💸 J'ai emprunté</option></select></div>
+      <div class="field"><label>Montant</label><input id="debt-amount" type="number" min="0.01" step="0.01" required></div>
+      <div class="field"><label>Devise</label><input id="debt-currency" value="USD" maxlength="8" required></div>
+      <div class="field"><label>Date</label><input id="debt-date" type="date" required></div>
+      <div class="field"><label>Échéance (facultative)</label><input id="debt-due" type="date"></div>
+      <div class="field"><label>Note</label><textarea id="debt-note" rows="3"></textarea></div>
+      <div class="modal-actions"><button type="button" class="secondary" onclick="closeModal('debt-modal')">Annuler</button><button>Enregistrer</button></div>
+    </form>
   </div>
+</div>
 
-  <!-- API Configuration Modal -->
-  <div id="config-modal" class="modal">
-    <div class="modal-content">
-      <h2>API Configuration</h2>
-      <div class="form-group">
-        <label>API Base URL</label>
-        <input type="url" id="api-url" placeholder="http://10.0.2.2:8000" />
-      </div>
-      <div class="modal-actions">
-        <button type="button" onclick="closeModal('config-modal')">Cancel</button>
-        <button onclick="testAndSaveApi()">Test & Sync</button>
-      </div>
-    </div>
+<div id="payment-modal" class="modal">
+  <div class="modal-content">
+    <h2>Ajouter un remboursement</h2>
+    <form id="payment-form">
+      <input id="payment-debt-id" type="hidden">
+      <div id="payment-info" class="muted" style="margin-bottom:12px"></div>
+      <div class="field"><label>Montant</label><input id="payment-amount" type="number" min="0.01" step="0.01" required></div>
+      <div class="field"><label>Date</label><input id="payment-date" type="date" required></div>
+      <div class="field"><label>Note</label><textarea id="payment-note" rows="2"></textarea></div>
+      <div class="modal-actions"><button type="button" class="secondary" onclick="closeModal('payment-modal')">Annuler</button><button>Enregistrer</button></div>
+    </form>
   </div>
+</div>
 
-  <script type="module">
-    import * as db from './db.mjs';
-    import * as sync from './sync.mjs';
+<script type="module">
+  import * as db from './db.mjs';
 
-    let app = { db, sync };
-    window.app = app;
+  const today = () => new Date().toISOString().slice(0,10);
+  const money = (n,c) => `${Number(n||0).toFixed(2)} ${c || ''}`;
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
-    // Tab switching
-    document.querySelectorAll('.tab-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-        btn.classList.add('active');
-        const tab = btn.dataset.tab;
-        document.getElementById(tab).classList.add('active');
-        if (tab === 'summary') loadSummary();
-        else if (tab === 'contacts') loadContacts();
-        else if (tab === 'transactions') loadTransactions();
-      });
-    });
+  function remaining(t) { return Math.max(0, Number(t.amount) - Number(t.paid_amount || 0)); }
+  function status(t) {
+    const r = remaining(t);
+    if (r <= 0.005) return { text:'Soldée', cls:'ok' };
+    if (t.due_date && t.due_date < today()) return { text:'En retard', cls:'late' };
+    if (Number(t.paid_amount) > 0) return { text:'Partielle', cls:'' };
+    return { text:'Non payée', cls:'' };
+  }
 
-    // Sync status
-    document.getElementById('sync-status').addEventListener('click', () => {
-      openModal('config-modal');
-      document.getElementById('api-url').value = sync.getApiUrl();
-    });
+  async function refresh() {
+    await loadSummary(); await loadContacts(); await loadDebts();
+  }
 
-    // Contact form
-    document.getElementById('contact-form').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      await db.createContact(
-        document.getElementById('contact-name').value,
-        document.getElementById('contact-phone').value
+  async function loadSummary() {
+    const [sum, stats] = await Promise.all([db.getSummary(), db.getDashboardStats()]);
+    document.getElementById('stats').innerHTML = `
+      <div class="card"><span class="muted">Contacts</span><strong>${stats.contacts}</strong></div>
+      <div class="card"><span class="muted">Dettes ouvertes</span><strong>${stats.open}</strong></div>
+      <div class="card"><span class="muted">À recevoir</span><strong>${sum.map(x=>money(x.to_receive,x.currency)).join('<br>') || '0.00'}</strong></div>
+      <div class="card"><span class="muted">À payer</span><strong>${sum.map(x=>money(x.to_pay,x.currency)).join('<br>') || '0.00'}</strong></div>`;
+    document.getElementById('summary-list').innerHTML = sum.length
+      ? sum.map(x=>`<div class="item"><div class="row"><strong>${esc(x.currency)}</strong><span class="badge">Solde: ${money(x.net,x.currency)}</span></div><p class="muted">À recevoir: ${money(x.to_receive,x.currency)} · À payer: ${money(x.to_pay,x.currency)}</p></div>`).join('')
+      : '<div class="empty">Aucune dette enregistrée.</div>';
+  }
+
+  async function loadContacts() {
+    const contacts = await db.getContacts();
+    document.getElementById('contacts-list').innerHTML = contacts.length ? contacts.map(c=>`
+      <div class="item"><div class="row"><div><h3>${esc(c.name)}</h3><span class="muted">${esc(c.phone || 'Aucun téléphone')}</span></div>
+      <button class="danger small" data-delete-contact="${c.id}">Supprimer</button></div></div>`).join('') : '<div class="empty">Aucun contact.</div>';
+    document.querySelectorAll('[data-delete-contact]').forEach(b=>b.onclick=async()=>{ if(confirm('Supprimer ce contact et ses dettes ?')){await db.deleteContact(b.dataset.deleteContact); await refresh();}});
+  }
+
+  async function loadDebts() {
+    const debts = await db.getTransactions();
+    document.getElementById('debts-list').innerHTML = debts.length ? debts.map(t=>{
+      const r=remaining(t), s=status(t);
+      return `<div class="item">
+        <div class="row"><h3>${t.type==='lent'?'💰':'💸'} ${esc(t.contact_name)}</h3><span class="badge ${s.cls}">${s.text}</span></div>
+        <p><strong>${money(t.amount,t.currency)}</strong> · Reste: <strong>${money(r,t.currency)}</strong></p>
+        <p class="muted">Date: ${esc(t.date)}${t.due_date?' · Échéance: '+esc(t.due_date):''}</p>
+        ${t.note?'<p class="muted">'+esc(t.note)+'</p>':''}
+        <div class="actions">
+          ${r>0.005?'<button class="small" data-pay="'+t.id+'">Rembourser</button>':''}
+          <button class="secondary small" data-history="${t.id}">Historique</button>
+          <button class="danger small" data-delete-debt="${t.id}">Supprimer</button>
+        </div>
+      </div>`;
+    }).join('') : '<div class="empty">Aucune dette.</div>';
+
+    document.querySelectorAll('[data-pay]').forEach(b=>b.onclick=()=>showPaymentForm(b.dataset.pay));
+    document.querySelectorAll('[data-history]').forEach(b=>b.onclick=()=>showHistory(b.dataset.history));
+    document.querySelectorAll('[data-delete-debt]').forEach(b=>b.onclick=async()=>{if(confirm('Supprimer cette dette ?')){await db.deleteTransaction(b.dataset.deleteDebt);await refresh();}});
+  }
+
+  window.showContactForm=()=>openModal('contact-modal');
+  window.showDebtForm=async()=>{
+    const contacts=await db.getContacts();
+    if(!contacts.length){alert('Ajoute d’abord un contact.'); return;}
+    document.getElementById('debt-contact').innerHTML=contacts.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('');
+    document.getElementById('debt-date').value=today();
+    openModal('debt-modal');
+  };
+  window.showPaymentForm=async(id)=>{
+    const t=await db.getTransaction(id); if(!t)return;
+    document.getElementById('payment-debt-id').value=id;
+    document.getElementById('payment-info').textContent=`Reste à payer : ${money(remaining(t),t.currency)}`;
+    document.getElementById('payment-amount').value=remaining(t).toFixed(2);
+    document.getElementById('payment-date').value=today();
+    openModal('payment-modal');
+  };
+  window.showHistory=async(id)=>{
+    const t=await db.getTransaction(id), payments=await db.getPayments(id);
+    alert(payments.length ? payments.map(p=>`${p.date} — ${money(p.amount,t.currency)}${p.note?' — '+p.note:''}`).join('\n') : 'Aucun remboursement.');
+  };
+  window.openModal=id=>document.getElementById(id).classList.add('active');
+  window.closeModal=id=>document.getElementById(id).classList.remove('active');
+
+  document.getElementById('contact-form').onsubmit=async e=>{
+    e.preventDefault();
+    await db.createContact(document.getElementById('contact-name').value,document.getElementById('contact-phone').value);
+    e.target.reset(); closeModal('contact-modal'); await refresh();
+  };
+
+  document.getElementById('debt-form').onsubmit=async e=>{
+    e.preventDefault();
+    const due=document.getElementById('debt-due').value, date=document.getElementById('debt-date').value;
+    if(due && due<date){alert("L'échéance ne peut pas précéder la date.");return;}
+    await db.createTransaction(
+      document.getElementById('debt-contact').value,
+      document.getElementById('debt-type').value,
+      Number(document.getElementById('debt-amount').value),
+      document.getElementById('debt-currency').value,
+      date,due,document.getElementById('debt-note').value
+    );
+    e.target.reset(); document.getElementById('debt-date').value=today(); closeModal('debt-modal'); await refresh();
+  };
+
+  document.getElementById('payment-form').onsubmit=async e=>{
+    e.preventDefault();
+    try{
+      await db.addPayment(
+        document.getElementById('payment-debt-id').value,
+        Number(document.getElementById('payment-amount').value),
+        document.getElementById('payment-date').value,
+        document.getElementById('payment-note').value
       );
-      closeModal('contact-modal');
-      loadContacts();
-      await sync.pushChanges();
-    });
+      e.target.reset(); closeModal('payment-modal'); await refresh();
+    }catch(err){alert(err.message);}
+  };
 
-    // Transaction form
-    document.getElementById('transaction-form').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      await db.createTransaction(
-        document.getElementById('transaction-contact').value,
-        document.getElementById('transaction-type').value,
-        parseFloat(document.getElementById('transaction-amount').value),
-        document.getElementById('transaction-currency').value,
-        document.getElementById('transaction-date').value,
-        document.getElementById('transaction-due-date').value,
-        document.getElementById('transaction-note').value
-      );
-      closeModal('transaction-modal');
-      loadTransactions();
-      await sync.pushChanges();
-    });
+  document.querySelectorAll('.tab-btn').forEach(btn=>btn.onclick=()=>{
+    document.querySelectorAll('.tab-btn').forEach(x=>x.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(x=>x.classList.remove('active'));
+    btn.classList.add('active'); document.getElementById(btn.dataset.tab).classList.add('active');
+  });
 
-    // Initialize
-    (async () => {
-      await db.initDB();
-      await sync.initSyncMonitor();
-      loadSummary();
-    })();
-
-    // Helper functions
-    window.showContactForm = () => openModal('contact-modal');
-    window.showTransactionForm = async () => {
-      const contacts = await db.getContacts();
-      const select = document.getElementById('transaction-contact');
-      select.innerHTML = contacts.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
-      openModal('transaction-modal');
-    };
-
-    window.openModal = (id) => document.getElementById(id).classList.add('active');
-    window.closeModal = (id) => document.getElementById(id).classList.remove('active');
-
-    window.testAndSaveApi = async () => {
-      const url = document.getElementById('api-url').value;
-      sync.setApiUrl(url);
-      const ok = await sync.testConnection();
-      if (ok) {
-        alert('Connection OK');
-        closeModal('config-modal');
-        await sync.pushChanges();
-      } else {
-        alert('Connection failed');
-      }
-    };
-
-    async function loadSummary() {
-      const summary = await sync.pullSummary();
-      if (summary) {
-        document.getElementById('to-receive').textContent = `$${summary.to_receive.toFixed(2)}`;
-        document.getElementById('to-pay').textContent = `$${summary.to_pay.toFixed(2)}`;
-        document.getElementById('summary-list').innerHTML = summary.by_contact.map(c =>
-          `<div class="list-item"><h3>${c.name}</h3><p>Balance: $${c.balance}</p></div>`
-        ).join('');
-      }
-    }
-
-    async function loadContacts() {
-      const contacts = await db.getContacts();
-      document.getElementById('contacts-list').innerHTML = contacts.map(c =>
-        `<div class="list-item"><h3>${c.name}</h3><p>${c.phone || 'No phone'}</p></div>`
-      ).join('');
-    }
-
-    async function loadTransactions() {
-      const txns = await db.getTransactions();
-      document.getElementById('transactions-list').innerHTML = txns.map(t =>
-        `<div class="list-item"><h3>${t.type}: $${t.amount} ${t.currency}</h3><p>${t.date}</p><p>${t.status}</p></div>`
-      ).join('');
-    }
-  </script>
+  (async()=>{try{await db.initDB();await refresh();}catch(e){console.error(e);alert('Impossible d’ouvrir la base locale : '+e.message);}})();
+</script>
 </body>
 </html>
