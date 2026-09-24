@@ -2,13 +2,6 @@
   "appId": "cd.carnet.dettes",
   "appName": "Carnet de Dettes",
   "webDir": "www",
-  "android": {
-    "allowMixedContent": true
-  },
-  "server": {
-    "androidScheme": "https",
-    "cleartext": true
-  },
   "plugins": {
     "SplashScreen": {
       "launchAutoHide": true,
