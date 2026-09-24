@@ -42,6 +42,7 @@ export async function initDB() {
   await sqlite.createConnection('carnet-dettes', false, 'no-encryption', 1, false);
   db = await sqlite.retrieveConnection('carnet-dettes', false);
   await db.open();
+  await db.execute('PRAGMA foreign_keys = ON;');
   await db.execute(SCHEMA);
 }
 
