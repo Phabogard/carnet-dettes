@@ -10,6 +10,10 @@ async function ensureColumn(table, column, definition) {
   }
 }
 
+function newSyncId(prefix) {
+  return `${prefix}-${crypto.randomUUID()}`;
+}
+
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS contacts (
   id INTEGER PRIMARY KEY,
