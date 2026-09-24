@@ -85,7 +85,7 @@ npm run run
 - Solde par devise : jamais additionnées, groupées
 - Retard : jours après l'échéance
 
-### Offline-first
+### Administration hors ligne\n\nUn administrateur local peut déverrouiller un panneau protégé par PIN et activer/désactiver les fonctionnalités suivantes : contacts, dettes, remboursements, historique, suppression, multi-devises et échéances. Ces réglages sont conservés dans SQLite et restent actifs sans Internet.\n\n**Important :** un appareil totalement hors ligne ne peut pas recevoir une commande distante en temps réel. Pour qu'un administrateur puisse contrôler plusieurs téléphones à distance, la synchronisation avec un serveur doit être activée ; les commandes seront alors téléchargées lorsque l'appareil retrouve Internet.\n\n### Offline-first
 
 1. **Write-through local** : tout est d'abord écrit en SQLite
 2. **Async push** : envoie au serveur en arrière-plan
@@ -133,7 +133,8 @@ UI → Store local → DB SQLite (immédiat, visible)
 
 ## Limitations actuelles
 
-1. Pas de gestion elaborée des conflits (2 edits concurrents)
+1. Le contrôle distant des appareils nécessite une synchronisation lorsque ceux-ci retrouvent Internet
+2. Pas de gestion élaborée des conflits (2 edits concurrents)
 2. Pas de pagination en sync (tous les débts à chaque fois)
 3. Pas de "last sync window" (charge tout depuis le début)
 4. Schema locale figée (edit = delete/recreate l'app)
